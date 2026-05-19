@@ -5,8 +5,8 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { ArrowLeft, Clock, Calendar, Timer, Coffee, MapPin, FileText } from 'lucide-react';
-import { formatDate, formatTime, formatMinutesToHours, getStatusLabel } from '../../utils/formatters';
+import { ArrowLeft, Clock, Calendar, Timer, MapPin, FileText, CalendarDays, AlertTriangle } from 'lucide-react';
+import { formatDate, formatTime, formatMinutesToHours, getStatusLabel, formatTimeStr } from '../../utils/formatters';
 import './LogDetail.css';
 
 export default function LogDetail() {
@@ -45,9 +45,19 @@ export default function LogDetail() {
       <Card className="log-detail-card">
         <div className="log-detail-header">
           <h2>Detail Log Kerja</h2>
-          <Badge variant={log.status === 'active' ? 'success' : 'default'} dot size="md">
-            {getStatusLabel(log.status)}
-          </Badge>
+          <div className="flex-gap-sm">
+            <Badge variant={log.status === 'active' ? 'success' : 'default'} dot size="md">
+              {getStatusLabel(log.status)}
+            </Badge>
+            {log.scheduled_start && (
+              <Badge variant={log.is_late ? 'danger' : 'success'} size="md">
+                {log.is_late ? 'Terlambat' : 'Tepat Waktu'}
+              </Badge>
+            )}
+            {log.is_early_leave && (
+              <Badge variant="warning" size="md">Pulang Cepat</Badge>
+            )}
+          </div>
         </div>
 
         <div className="log-detail-grid">
@@ -66,11 +76,13 @@ export default function LogDetail() {
             <span className="text-muted">Selesai</span>
             <strong>{formatTime(log.end_time)}</strong>
           </div>
-          <div className="log-detail-item">
-            <Coffee size={16} />
-            <span className="text-muted">Istirahat</span>
-            <strong>{log.break_minutes} menit</strong>
-          </div>
+          {log.scheduled_start && (
+            <div className="log-detail-item">
+              <CalendarDays size={16} />
+              <span className="text-muted">Jadwal</span>
+              <strong>{formatTimeStr(log.scheduled_start)} — {formatTimeStr(log.scheduled_end)}</strong>
+            </div>
+          )}
           <div className="log-detail-item">
             <Timer size={16} />
             <span className="text-muted">Total Kerja</span>
@@ -84,6 +96,18 @@ export default function LogDetail() {
             </div>
           )}
         </div>
+
+        {log.late_reason && (
+          <div style={{ padding: '10px 14px', background: 'hsla(0,70%,50%,0.1)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-md)', fontSize: '0.85rem' }}>
+            <strong><AlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> Alasan terlambat:</strong> {log.late_reason}
+          </div>
+        )}
+
+        {log.early_leave_reason && (
+          <div style={{ padding: '10px 14px', background: 'hsla(40,80%,50%,0.1)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-sm)', fontSize: '0.85rem' }}>
+            <strong><AlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> Alasan pulang cepat:</strong> {log.early_leave_reason}
+          </div>
+        )}
 
         {log.description && (
           <div className="log-detail-desc">

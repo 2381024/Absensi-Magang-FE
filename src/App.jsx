@@ -13,6 +13,7 @@ import LogDetail from './pages/user/LogDetail';
 import Profile from './pages/user/Profile';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsers from './pages/admin/Users';
+import AdminSchedules from './pages/admin/Schedules';
 import AdminGeofence from './pages/admin/Geofence';
 import AdminLogs from './pages/admin/Logs';
 import AdminLogDetail from './pages/admin/LogDetail';
@@ -45,6 +46,7 @@ export default function App() {
               {/* Admin routes */}
               <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
+              <Route path="/admin/schedules" element={<ProtectedRoute adminOnly><AdminSchedules /></ProtectedRoute>} />
               <Route path="/admin/geofence" element={<ProtectedRoute adminOnly><AdminGeofence /></ProtectedRoute>} />
               <Route path="/admin/logs" element={<ProtectedRoute adminOnly><AdminLogs /></ProtectedRoute>} />
               <Route path="/admin/logs/:id" element={<ProtectedRoute adminOnly><AdminLogDetail /></ProtectedRoute>} />

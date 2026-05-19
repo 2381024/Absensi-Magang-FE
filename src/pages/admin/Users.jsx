@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../api/axios';
 import { useToast } from '../../context/ToastContext';
 import Card from '../../components/ui/Card';
@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Input, { Select } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, User as UserIcon, Camera } from 'lucide-react';
 import { getRoleLabel } from '../../utils/formatters';
 import './Users.css';
 
@@ -26,6 +26,8 @@ export default function AdminUsers() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
 
   const fetchUsers = async () => {
     try {
@@ -77,6 +79,40 @@ export default function AdminUsers() {
     setSaving(false);
   };
 
+  const handleAvatarChange = async (e) => {
+    if (!editing) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran gambar maksimal 5MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploadingAvatar(true);
+    try {
+      await api.post(`/users/${editing.id}/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success('Foto profil berhasil diubah');
+      fetchUsers();
+      // Update editing state so the modal shows the new image immediately
+      // Since fetchUsers is async and might take a moment, a local patch makes it snappy
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setEditing((prev) => ({ ...prev, avatar_url: e.target.result }));
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Gagal mengubah foto profil');
+    }
+    setUploadingAvatar(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleDelete = async (user) => {
     if (!confirm(`Nonaktifkan user "${user.full_name}"?`)) return;
     try {
@@ -94,6 +130,18 @@ export default function AdminUsers() {
   );
 
   const columns = [
+    {
+      key: 'avatar', label: '', width: '40px',
+      render: (v, row) => (
+        <div className="user-table-avatar">
+          {row.avatar_url ? (
+            <img src={`http://localhost:5000${row.avatar_url}`} alt={row.full_name} />
+          ) : (
+            <div className="user-table-avatar-placeholder"><UserIcon size={16} /></div>
+          )}
+        </div>
+      ),
+    },
     { key: 'full_name', label: 'Nama' },
     { key: 'username', label: 'Username' },
     { key: 'email', label: 'Email' },
@@ -122,7 +170,7 @@ export default function AdminUsers() {
     <div className="page-container">
       <div className="flex-between mb-lg">
         <div>
-          <h1>Kelola User</h1>
+          <h1>Kelola Akun</h1>
           <p className="text-muted">{users.length} user terdaftar</p>
         </div>
         <Button icon={Plus} onClick={openCreate}>Tambah User</Button>
@@ -140,13 +188,43 @@ export default function AdminUsers() {
         footer={
           <>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Batal</Button>
-            <Button loading={saving} onClick={handleSubmit}>
+            <Button loading={saving} type="submit" form="user-form">
               {editing ? 'Simpan' : 'Buat User'}
             </Button>
           </>
         }>
-        <form onSubmit={handleSubmit} className="modal-form">
-          {!editing && (
+        <div className="modal-form">
+          {editing && (
+            <div className="edit-avatar-section mb-md" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div
+                className={`profile-avatar-large editable ${uploadingAvatar ? 'uploading' : ''}`}
+                onClick={() => !uploadingAvatar && fileInputRef.current?.click()}
+                style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '3px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}
+              >
+                {editing.avatar_url ? (
+                  <img src={editing.avatar_url.startsWith('data:') ? editing.avatar_url : `http://localhost:5000${editing.avatar_url}`} alt={editing.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <UserIcon size={40} color="var(--text-secondary)" />
+                )}
+                {!uploadingAvatar && (
+                  <div className="avatar-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0}>
+                    <Camera size={24} />
+                  </div>
+                )}
+                {uploadingAvatar && <PageSpinner size="sm" />}
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg, image/png, image/webp"
+                style={{ display: 'none' }}
+                onChange={handleAvatarChange}
+              />
+              <span className="text-muted" style={{ fontSize: '0.8rem' }}>Klik gambar untuk mengubah foto</span>
+            </div>
+          )}
+          <form id="user-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+            {!editing && (
             <Input id="user-username" label="Username" value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })} required />
           )}
@@ -169,7 +247,8 @@ export default function AdminUsers() {
             onChange={(e) => setForm({ ...form, department: e.target.value })} />
           <Input id="user-phone" label="No. Telepon" value={form.phone_number}
             onChange={(e) => setForm({ ...form, phone_number: e.target.value })} />
-        </form>
+          </form>
+        </div>
       </Modal>
     </div>
   );

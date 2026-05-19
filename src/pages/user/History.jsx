@@ -45,6 +45,15 @@ export default function History() {
         </Badge>
       ),
     },
+    {
+      key: 'is_late',
+      label: 'Kehadiran',
+      render: (v) => {
+        if (v === true) return <Badge variant="danger">Terlambat</Badge>;
+        if (v === false) return <Badge variant="success">Tepat Waktu</Badge>;
+        return <span className="text-muted">-</span>;
+      },
+    },
   ];
 
   const years = [];
@@ -87,6 +96,14 @@ export default function History() {
               <div className="history-summary-item">
                 <span className="history-summary-value">{summary.average_hours_per_day}</span>
                 <span className="history-summary-label">Rata-rata/Hari</span>
+              </div>
+              <div className="history-summary-item">
+                <span className="history-summary-value" style={{ color: 'var(--color-danger)' }}>{summary.total_late || 0}</span>
+                <span className="history-summary-label">Terlambat</span>
+              </div>
+              <div className="history-summary-item">
+                <span className="history-summary-value" style={{ color: 'var(--color-warning)' }}>{summary.total_early_leave || 0}</span>
+                <span className="history-summary-label">Pulang Cepat</span>
               </div>
             </div>
           )}

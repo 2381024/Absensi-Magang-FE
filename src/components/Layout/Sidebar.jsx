@@ -9,6 +9,7 @@ import {
   MapPin,
   FileText,
   Settings,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -22,7 +23,8 @@ const userNav = [
 
 const adminNav = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/admin/users', icon: Users, label: 'Kelola User' },
+  { to: '/admin/users', icon: Users, label: 'Kelola Akun' },
+  { to: '/admin/schedules', icon: CalendarDays, label: 'Jadwal' },
   { to: '/admin/geofence', icon: MapPin, label: 'Geofence' },
   { to: '/admin/logs', icon: FileText, label: 'Kelola Log' },
   { to: '/admin/config', icon: Settings, label: 'Konfigurasi' },

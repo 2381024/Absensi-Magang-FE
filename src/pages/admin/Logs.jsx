@@ -71,6 +71,21 @@ export default function AdminLogs() {
       render: (v) => <Badge variant={v === 'active' ? 'success' : 'default'} dot>{getStatusLabel(v)}</Badge>,
     },
     {
+      key: 'is_late', label: 'Kehadiran',
+      render: (v, row) => {
+        if (v === true) return <Badge variant="danger">Terlambat</Badge>;
+        if (v === false) return <Badge variant="success">Tepat Waktu</Badge>;
+        return <span className="text-muted">-</span>;
+      },
+    },
+    {
+      key: 'is_early_leave', label: 'Pulang',
+      render: (v) => {
+        if (v === true) return <Badge variant="warning">Cepat</Badge>;
+        return null;
+      },
+    },
+    {
       key: 'actions', label: '', width: '50px',
       render: (_, row) => (
         <Button variant="ghost" size="sm" icon={Trash2} onClick={(e) => { e.stopPropagation(); handleDelete(row); }} />

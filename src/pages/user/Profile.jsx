@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../api/axios';
@@ -7,7 +7,7 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { User, Mail, Phone, Briefcase, Building, Lock, Save } from 'lucide-react';
+import { User, Mail, Phone, Briefcase, Building, Lock, Save, Camera } from 'lucide-react';
 import { getRoleLabel } from '../../utils/formatters';
 import './Profile.css';
 
@@ -18,7 +18,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
-  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm: '' });
+  const [pwForm, setPwForm] = useState({ new_password: '', confirm: '' });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -65,15 +67,42 @@ export default function Profile() {
     setSaving(true);
     try {
       await api.put('/profile', {
-        current_password: pwForm.current_password,
         new_password: pwForm.new_password,
       });
-      setPwForm({ current_password: '', new_password: '', confirm: '' });
+      setPwForm({ new_password: '', confirm: '' });
       toast.success('Password berhasil diubah');
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Gagal mengubah password');
     }
     setSaving(false);
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran gambar maksimal 5MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploadingAvatar(true);
+    try {
+      const { data } = await api.post('/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const updatedUser = { ...profile, avatar_url: data.data.avatar_url };
+      setProfile(updatedUser);
+      updateUser(updatedUser);
+      toast.success('Foto profil berhasil diubah');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Gagal mengubah foto profil');
+    }
+    setUploadingAvatar(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (loading) return <PageSpinner />;
@@ -89,13 +118,29 @@ export default function Profile() {
         {/* Info Card */}
         <Card className="profile-info-card">
           <div className="profile-avatar-section">
-            <div className="profile-avatar-large">
+            <div
+              className={`profile-avatar-large editable ${uploadingAvatar ? 'uploading' : ''}`}
+              onClick={() => !uploadingAvatar && fileInputRef.current?.click()}
+            >
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.full_name} />
+                <img src={`http://localhost:5000${profile.avatar_url}`} alt={profile.full_name} />
               ) : (
                 <User size={40} />
               )}
+              {!uploadingAvatar && (
+                <div className="avatar-overlay">
+                  <Camera size={24} />
+                </div>
+              )}
+              {uploadingAvatar && <PageSpinner size="sm" />}
             </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg, image/png, image/webp"
+              style={{ display: 'none' }}
+              onChange={handleAvatarChange}
+            />
             <h3>{profile?.full_name}</h3>
             <p className="text-muted">@{profile?.username}</p>
             <Badge variant={profile?.role === 'admin' ? 'primary' : 'info'} size="md">
@@ -131,21 +176,20 @@ export default function Profile() {
             </form>
           </Card>
 
-          <Card className="mt-lg">
-            <h3 className="mb-md">Ubah Password</h3>
-            <form onSubmit={handleChangePassword} className="profile-form">
-              <Input id="current-pw" label="Password Saat Ini" type="password" icon={Lock}
-                value={pwForm.current_password}
-                onChange={(e) => setPwForm({ ...pwForm, current_password: e.target.value })} />
-              <Input id="new-pw" label="Password Baru" type="password" icon={Lock}
-                value={pwForm.new_password}
-                onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })} />
-              <Input id="confirm-pw" label="Konfirmasi Password Baru" type="password" icon={Lock}
-                value={pwForm.confirm}
-                onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })} />
-              <Button type="submit" variant="warning" icon={Lock} loading={saving}>Ubah Password</Button>
-            </form>
-          </Card>
+          {profile?.role === 'admin' && (
+            <Card className="mt-lg">
+              <h3 className="mb-md">Ubah Password</h3>
+              <form onSubmit={handleChangePassword} className="profile-form">
+                <Input id="new-pw" label="Password Baru" type="password" icon={Lock}
+                  value={pwForm.new_password}
+                  onChange={(e) => setPwForm({ ...pwForm, new_password: e.target.value })} />
+                <Input id="confirm-pw" label="Konfirmasi Password Baru" type="password" icon={Lock}
+                  value={pwForm.confirm}
+                  onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })} />
+                <Button type="submit" variant="warning" icon={Lock} loading={saving}>Ubah Password</Button>
+              </form>
+            </Card>
+          )}
         </div>
       </div>
     </div>

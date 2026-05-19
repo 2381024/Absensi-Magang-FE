@@ -8,8 +8,8 @@ import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { ArrowLeft, Edit2, Coffee, Clock, Calendar, Timer, MapPin, FileText, Save } from 'lucide-react';
-import { formatDate, formatTime, formatMinutesToHours, getStatusLabel } from '../../utils/formatters';
+import { ArrowLeft, Edit2, Clock, Calendar, Timer, MapPin, FileText, Save, CalendarDays, AlertTriangle } from 'lucide-react';
+import { formatDate, formatTime, formatMinutesToHours, getStatusLabel, formatTimeStr } from '../../utils/formatters';
 import '../user/LogDetail.css';
 
 export default function AdminLogDetail() {
@@ -19,9 +19,7 @@ export default function AdminLogDetail() {
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState(false);
-  const [breakModal, setBreakModal] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [breakMinutes, setBreakMinutes] = useState('');
   const [saving, setSaving] = useState(false);
 
   const fetchLog = async () => {
@@ -43,11 +41,6 @@ export default function AdminLogDetail() {
     setEditModal(true);
   };
 
-  const openBreak = () => {
-    setBreakMinutes(log.break_minutes || 30);
-    setBreakModal(true);
-  };
-
   const handleEditSubmit = async () => {
     setSaving(true);
     try {
@@ -61,19 +54,6 @@ export default function AdminLogDetail() {
       fetchLog();
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Gagal memperbarui log');
-    }
-    setSaving(false);
-  };
-
-  const handleBreakSubmit = async () => {
-    setSaving(true);
-    try {
-      await api.patch(`/logs/${id}/break`, { break_minutes: Number(breakMinutes) });
-      toast.success('Durasi istirahat berhasil diubah');
-      setBreakModal(false);
-      fetchLog();
-    } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Gagal mengubah istirahat');
     }
     setSaving(false);
   };
@@ -100,8 +80,15 @@ export default function AdminLogDetail() {
             <Badge variant={log.status === 'active' ? 'success' : 'default'} dot size="md">
               {getStatusLabel(log.status)}
             </Badge>
+            {log.scheduled_start && (
+              <Badge variant={log.is_late ? 'danger' : 'success'} size="md">
+                {log.is_late ? 'Terlambat' : 'Tepat Waktu'}
+              </Badge>
+            )}
+            {log.is_early_leave && (
+              <Badge variant="warning" size="md">Pulang Cepat</Badge>
+            )}
             <Button variant="secondary" size="sm" icon={Edit2} onClick={openEdit}>Edit</Button>
-            <Button variant="secondary" size="sm" icon={Coffee} onClick={openBreak}>Istirahat</Button>
           </div>
         </div>
 
@@ -109,12 +96,26 @@ export default function AdminLogDetail() {
           <div className="log-detail-item"><Calendar size={16} /><span className="text-muted">Tanggal</span><strong>{formatDate(log.date)}</strong></div>
           <div className="log-detail-item"><Clock size={16} /><span className="text-muted">Mulai</span><strong>{formatTime(log.start_time)}</strong></div>
           <div className="log-detail-item"><Clock size={16} /><span className="text-muted">Selesai</span><strong>{formatTime(log.end_time)}</strong></div>
-          <div className="log-detail-item"><Coffee size={16} /><span className="text-muted">Istirahat</span><strong>{log.break_minutes} menit</strong></div>
+          {log.scheduled_start && (
+            <div className="log-detail-item"><CalendarDays size={16} /><span className="text-muted">Jadwal</span><strong>{formatTimeStr(log.scheduled_start)} — {formatTimeStr(log.scheduled_end)}</strong></div>
+          )}
           <div className="log-detail-item"><Timer size={16} /><span className="text-muted">Total</span><strong>{formatMinutesToHours(log.total_work_minutes)}</strong></div>
           {log.geofence_passed !== null && (
             <div className="log-detail-item"><MapPin size={16} /><span className="text-muted">Geofence</span><strong>{log.geofence_passed ? 'Lolos' : 'Tidak'}</strong></div>
           )}
         </div>
+
+        {log.late_reason && (
+          <div style={{ padding: '10px 14px', background: 'hsla(0,70%,50%,0.1)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-md)', fontSize: '0.85rem' }}>
+            <strong><AlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> Alasan terlambat:</strong> {log.late_reason}
+          </div>
+        )}
+
+        {log.early_leave_reason && (
+          <div style={{ padding: '10px 14px', background: 'hsla(40,80%,50%,0.1)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-sm)', fontSize: '0.85rem' }}>
+            <strong><AlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> Alasan pulang cepat:</strong> {log.early_leave_reason}
+          </div>
+        )}
 
         {log.description && (
           <div className="log-detail-desc">
@@ -151,20 +152,6 @@ export default function AdminLogDetail() {
             value={editForm.end_time} onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })} />
           <Input id="edit-desc" label="Deskripsi" type="textarea"
             value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
-        </div>
-      </Modal>
-
-      {/* Break Modal */}
-      <Modal isOpen={breakModal} onClose={() => setBreakModal(false)} title="Ubah Durasi Istirahat" size="sm"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setBreakModal(false)}>Batal</Button>
-            <Button icon={Save} loading={saving} onClick={handleBreakSubmit}>Simpan</Button>
-          </>
-        }>
-        <div className="modal-form">
-          <Input id="break-min" label="Durasi Istirahat (menit)" type="number" min="0"
-            value={breakMinutes} onChange={(e) => setBreakMinutes(e.target.value)} />
         </div>
       </Modal>
     </div>

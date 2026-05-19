@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
+import Modal from '../../components/ui/Modal';
 import { PageSpinner } from '../../components/ui/Spinner';
 import {
   Play,
@@ -17,9 +18,10 @@ import {
   Send,
   Calendar,
   Timer,
-  Coffee,
   CheckCircle,
   FileText,
+  AlertTriangle,
+  CalendarDays,
 } from 'lucide-react';
 import {
   formatTime,
@@ -28,6 +30,8 @@ import {
   getElapsedMinutes,
   getStatusLabel,
   getMonthName,
+  formatTimeStr,
+  getDayName,
 } from '../../utils/formatters';
 import './Dashboard.css';
 
@@ -38,11 +42,18 @@ export default function UserDashboard() {
   const [todayLog, setTodayLog] = useState(undefined); // undefined = loading
   const [summary, setSummary] = useState(null);
   const [entries, setEntries] = useState([]);
+  const [schedule, setSchedule] = useState(null); // today's schedule
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [entryContent, setEntryContent] = useState('');
   const [description, setDescription] = useState('');
   const [elapsed, setElapsed] = useState(0);
+
+  // Late / early leave modals
+  const [lateModalOpen, setLateModalOpen] = useState(false);
+  const [lateReason, setLateReason] = useState('');
+  const [earlyModalOpen, setEarlyModalOpen] = useState(false);
+  const [earlyReason, setEarlyReason] = useState('');
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -73,14 +84,25 @@ export default function UserDashboard() {
     }
   }, [currentMonth, currentYear]);
 
+  const fetchSchedule = useCallback(async () => {
+    try {
+      const { data } = await api.get('/schedules/me');
+      const todayDow = new Date().getDay();
+      const todaySched = data.data.find((s) => s.day_of_week === todayDow);
+      setSchedule(todaySched || null);
+    } catch {
+      setSchedule(null);
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchToday(), fetchSummary()]);
+      await Promise.all([fetchToday(), fetchSummary(), fetchSchedule()]);
       setLoading(false);
     };
     init();
-  }, [fetchToday, fetchSummary]);
+  }, [fetchToday, fetchSummary, fetchSchedule]);
 
   // Elapsed timer
   useEffect(() => {
@@ -93,7 +115,35 @@ export default function UserDashboard() {
     }
   }, [todayLog]);
 
+  // Check if user would be late
+  const isLateNow = () => {
+    if (!schedule) return false;
+    const schedStart = new Date();
+    const parts = schedule.start_time.split(':');
+    schedStart.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+    return new Date() > schedStart;
+  };
+
+  // Check if user would be leaving early
+  const isEarlyNow = () => {
+    if (!todayLog?.scheduled_end) return false;
+    const schedEnd = new Date();
+    const parts = todayLog.scheduled_end.split(':');
+    schedEnd.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+    return new Date() < schedEnd;
+  };
+
   const handleStartShift = async () => {
+    // If late, show modal for reason
+    if (isLateNow()) {
+      setLateReason('');
+      setLateModalOpen(true);
+      return;
+    }
+    await doStartShift('');
+  };
+
+  const doStartShift = async (reason) => {
     setActionLoading(true);
     try {
       let body = {};
@@ -104,6 +154,8 @@ export default function UserDashboard() {
       } catch {
         // Location might not be required if no geofence is active — send empty body
       }
+
+      if (reason) body.late_reason = reason;
 
       await api.post('/logs/start', body);
       toast.success('Shift berhasil dimulai!');
@@ -117,6 +169,17 @@ export default function UserDashboard() {
   };
 
   const handleEndShift = async () => {
+    if (!todayLog) return;
+    // If early leave, show modal for reason
+    if (isEarlyNow()) {
+      setEarlyReason('');
+      setEarlyModalOpen(true);
+      return;
+    }
+    await doEndShift('');
+  };
+
+  const doEndShift = async (reason) => {
     if (!todayLog) return;
     setActionLoading(true);
     try {
@@ -132,6 +195,8 @@ export default function UserDashboard() {
           return;
         }
       }
+
+      if (reason) body.early_leave_reason = reason;
 
       await api.put(`/logs/${todayLog.id}/finish`, body);
       toast.success('Shift selesai!');
@@ -166,6 +231,18 @@ export default function UserDashboard() {
         <p>Selamat datang, {user?.full_name}!</p>
       </div>
 
+      {/* Today's Schedule Info */}
+      {schedule && todayLog === null && (
+        <Card className="mb-md animate-fade-in-up" style={{ borderLeft: '3px solid var(--accent-primary)' }}>
+          <div className="flex-gap-sm" style={{ alignItems: 'center' }}>
+            <CalendarDays size={18} style={{ color: 'var(--accent-primary)' }} />
+            <span>
+              Jadwal hari ini ({getDayName(new Date().getDay())}): <strong>{formatTimeStr(schedule.start_time)} — {formatTimeStr(schedule.end_time)}</strong>
+            </span>
+          </div>
+        </Card>
+      )}
+
       {/* Shift Card */}
       <Card className="shift-card mb-lg">
         {todayLog === null ? (
@@ -191,11 +268,29 @@ export default function UserDashboard() {
           /* Active */
           <div className="shift-active">
             <div className="shift-active-header">
-              <Badge variant="success" dot size="md">Shift Aktif</Badge>
+              <div className="flex-gap-sm">
+                <Badge variant="success" dot size="md">Shift Aktif</Badge>
+                {todayLog.is_late && (
+                  <Badge variant="danger" size="md">
+                    <AlertTriangle size={12} /> Terlambat
+                  </Badge>
+                )}
+              </div>
               <span className="shift-start-time">
                 <Clock size={14} /> Mulai: {formatTime(todayLog.start_time)}
+                {todayLog.scheduled_start && (
+                  <span className="text-muted" style={{ marginLeft: 8, fontSize: '0.8rem' }}>
+                    (Jadwal: {formatTimeStr(todayLog.scheduled_start)})
+                  </span>
+                )}
               </span>
             </div>
+
+            {todayLog.is_late && todayLog.late_reason && (
+              <div className="mt-sm" style={{ padding: '8px 12px', background: 'hsla(0,70%,50%,0.1)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+                <strong>Alasan terlambat:</strong> {todayLog.late_reason}
+              </div>
+            )}
 
             <div className="shift-timer">
               <Timer size={20} />
@@ -263,6 +358,19 @@ export default function UserDashboard() {
               <CheckCircle size={40} />
             </div>
             <h2>Shift Selesai</h2>
+
+            {/* Attendance badges */}
+            <div className="flex-gap-sm mb-md" style={{ justifyContent: 'center' }}>
+              {todayLog.scheduled_start && (
+                <Badge variant={todayLog.is_late ? 'danger' : 'success'} dot>
+                  {todayLog.is_late ? 'Terlambat' : 'Tepat Waktu'}
+                </Badge>
+              )}
+              {todayLog.is_early_leave && (
+                <Badge variant="warning" dot>Pulang Cepat</Badge>
+              )}
+            </div>
+
             <div className="shift-completed-grid">
               <div className="shift-stat">
                 <Calendar size={16} />
@@ -274,17 +382,31 @@ export default function UserDashboard() {
                 <span className="text-muted">Waktu</span>
                 <strong>{formatTime(todayLog.start_time)} — {formatTime(todayLog.end_time)}</strong>
               </div>
-              <div className="shift-stat">
-                <Coffee size={16} />
-                <span className="text-muted">Istirahat</span>
-                <strong>{todayLog.break_minutes} menit</strong>
-              </div>
+              {todayLog.scheduled_start && (
+                <div className="shift-stat">
+                  <CalendarDays size={16} />
+                  <span className="text-muted">Jadwal</span>
+                  <strong>{formatTimeStr(todayLog.scheduled_start)} — {formatTimeStr(todayLog.scheduled_end)}</strong>
+                </div>
+              )}
               <div className="shift-stat">
                 <Timer size={16} />
                 <span className="text-muted">Total Kerja</span>
                 <strong>{formatMinutesToHours(todayLog.total_work_minutes)}</strong>
               </div>
             </div>
+
+            {todayLog.late_reason && (
+              <div className="mt-sm" style={{ padding: '8px 12px', background: 'hsla(0,70%,50%,0.1)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', textAlign: 'left' }}>
+                <strong>Alasan terlambat:</strong> {todayLog.late_reason}
+              </div>
+            )}
+            {todayLog.early_leave_reason && (
+              <div className="mt-sm" style={{ padding: '8px 12px', background: 'hsla(40,80%,50%,0.1)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', textAlign: 'left' }}>
+                <strong>Alasan pulang cepat:</strong> {todayLog.early_leave_reason}
+              </div>
+            )}
+
             {todayLog.geofence_passed !== null && (
               <div className="mt-sm">
                 <Badge variant={todayLog.geofence_passed ? 'success' : 'danger'} dot>
@@ -313,9 +435,83 @@ export default function UserDashboard() {
               <span className="summary-value">{summary.average_hours_per_day}</span>
               <span className="summary-label">Rata-rata/Hari</span>
             </div>
+            <div className="summary-item">
+              <span className="summary-value" style={{ color: 'var(--color-danger)' }}>{summary.total_late || 0}</span>
+              <span className="summary-label">Terlambat</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-value" style={{ color: 'var(--color-warning)' }}>{summary.total_early_leave || 0}</span>
+              <span className="summary-label">Pulang Cepat</span>
+            </div>
           </div>
         </Card>
       )}
+
+      {/* Late Reason Modal */}
+      <Modal isOpen={lateModalOpen} onClose={() => setLateModalOpen(false)}
+        title="Anda Terlambat"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setLateModalOpen(false)}>Batal</Button>
+            <Button loading={actionLoading} onClick={() => {
+              if (!lateReason.trim()) {
+                toast.error('Alasan terlambat wajib diisi');
+                return;
+              }
+              setLateModalOpen(false);
+              doStartShift(lateReason.trim());
+            }}>Mulai Shift</Button>
+          </>
+        }>
+        <div className="modal-form">
+          <div className="flex-gap-sm mb-md" style={{ color: 'var(--color-danger)', alignItems: 'center' }}>
+            <AlertTriangle size={18} />
+            <span>Anda terlambat dari jadwal ({formatTimeStr(schedule?.start_time)}). Silakan masukkan alasan.</span>
+          </div>
+          <Input
+            id="late-reason"
+            type="textarea"
+            label="Alasan Terlambat"
+            placeholder="Tuliskan alasan keterlambatan..."
+            value={lateReason}
+            onChange={(e) => setLateReason(e.target.value)}
+            required
+          />
+        </div>
+      </Modal>
+
+      {/* Early Leave Reason Modal */}
+      <Modal isOpen={earlyModalOpen} onClose={() => setEarlyModalOpen(false)}
+        title="Pulang Cepat"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEarlyModalOpen(false)}>Batal</Button>
+            <Button loading={actionLoading} onClick={() => {
+              if (!earlyReason.trim()) {
+                toast.error('Alasan pulang cepat wajib diisi');
+                return;
+              }
+              setEarlyModalOpen(false);
+              doEndShift(earlyReason.trim());
+            }}>Akhiri Shift</Button>
+          </>
+        }>
+        <div className="modal-form">
+          <div className="flex-gap-sm mb-md" style={{ color: 'var(--color-warning)', alignItems: 'center' }}>
+            <AlertTriangle size={18} />
+            <span>Anda akan pulang sebelum jadwal ({formatTimeStr(todayLog?.scheduled_end)}). Silakan masukkan alasan.</span>
+          </div>
+          <Input
+            id="early-reason"
+            type="textarea"
+            label="Alasan Pulang Cepat"
+            placeholder="Tuliskan alasan pulang cepat..."
+            value={earlyReason}
+            onChange={(e) => setEarlyReason(e.target.value)}
+            required
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

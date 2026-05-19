@@ -76,3 +76,29 @@ export const getMonthName = (month) => {
   ];
   return months[month - 1] || '';
 };
+
+// Day names — Sunday (0) to Saturday (6)
+const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+export const getDayName = (dayOfWeek) => DAY_NAMES[dayOfWeek] || '';
+
+// Day order for display: Sunday first
+export const DAY_ORDER = [0, 1, 2, 3, 4, 5, 6];
+
+export const getAttendanceLabel = (isLate) => {
+  if (isLate === true) return 'Terlambat';
+  if (isLate === false) return 'Tepat Waktu';
+  return '-';
+};
+
+export const getAttendanceVariant = (isLate) => {
+  if (isLate === true) return 'danger';
+  if (isLate === false) return 'success';
+  return 'default';
+};
+
+// Format TIME string (HH:MM:SS) to HH:MM
+export const formatTimeStr = (timeStr) => {
+  if (!timeStr) return '-';
+  return timeStr.slice(0, 5);
+};

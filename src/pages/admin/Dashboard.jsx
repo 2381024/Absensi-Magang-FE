@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import Table from '../../components/ui/Table';
 import Badge from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { Users, UserCheck, Clock, CheckCircle, Timer, UserX } from 'lucide-react';
+import { Users, UserCheck, Clock, CheckCircle, Timer, UserX, AlertTriangle, LogOut } from 'lucide-react';
 import { formatTime, getStatusLabel } from '../../utils/formatters';
 
 export default function AdminDashboard() {
@@ -46,6 +46,15 @@ export default function AdminDashboard() {
         </Badge>
       ),
     },
+    {
+      key: 'is_late',
+      label: 'Kehadiran',
+      render: (v, row) => {
+        if (v === true) return <Badge variant="danger">Terlambat</Badge>;
+        if (v === false) return <Badge variant="success">Tepat Waktu</Badge>;
+        return <span className="text-muted">-</span>;
+      },
+    },
   ];
 
   return (
@@ -62,6 +71,8 @@ export default function AdminDashboard() {
         <StatCard icon={CheckCircle} label="Shift Selesai" value={stats?.completed_shifts_today || 0} color="info" />
         <StatCard icon={Timer} label="Total Jam Hari Ini" value={stats?.total_work_hours_today || 0} color="primary" />
         <StatCard icon={UserX} label="Tidak Hadir" value={stats?.users_on_leave_today || 0} color="danger" />
+        <StatCard icon={AlertTriangle} label="Terlambat Hari Ini" value={stats?.late_today || 0} color="danger" />
+        <StatCard icon={LogOut} label="Pulang Cepat" value={stats?.early_leave_today || 0} color="warning" />
       </div>
 
       <Card padding="none">
