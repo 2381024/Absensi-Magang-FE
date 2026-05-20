@@ -23,10 +23,7 @@
   display: none;
 }
 
-.sidebar-mobile-open-wrapper .sidebar {
-  transform: translateX(0) !important;
-  width: var(--sidebar-width) !important;
-}
+
 
 @media (max-width: 768px) {
   .app-main {

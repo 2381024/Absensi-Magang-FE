@@ -30,14 +30,14 @@ const adminNav = [
   { to: '/admin/config', icon: Settings, label: 'Konfigurasi' },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, mobileOpen, onToggle }) {
   const { user } = useAuth();
   const location = useLocation();
   const isAdmin = user?.role === 'admin';
   const navItems = isAdmin ? adminNav : userNav;
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
+    <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${mobileOpen ? 'sidebar-mobile-open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">
