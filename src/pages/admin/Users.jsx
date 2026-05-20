@@ -29,6 +29,8 @@ export default function AdminUsers() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef(null);
 
+  const serverUrl = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '');
+
   const fetchUsers = async () => {
     try {
       const { data } = await api.get('/users');
@@ -135,7 +137,7 @@ export default function AdminUsers() {
       render: (v, row) => (
         <div className="user-table-avatar">
           {row.avatar_url ? (
-            <img src={`http://localhost:5000${row.avatar_url}`} alt={row.full_name} />
+            <img src={`${serverUrl}${row.avatar_url}`} alt={row.full_name} />
           ) : (
             <div className="user-table-avatar-placeholder"><UserIcon size={16} /></div>
           )}
@@ -202,7 +204,7 @@ export default function AdminUsers() {
                 style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '3px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}
               >
                 {editing.avatar_url ? (
-                  <img src={editing.avatar_url.startsWith('data:') ? editing.avatar_url : `http://localhost:5000${editing.avatar_url}`} alt={editing.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={editing.avatar_url.startsWith('data:') ? editing.avatar_url : `${serverUrl}${editing.avatar_url}`} alt={editing.full_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <UserIcon size={40} color="var(--text-secondary)" />
                 )}

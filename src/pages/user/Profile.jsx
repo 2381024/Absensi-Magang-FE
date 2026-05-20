@@ -22,6 +22,8 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef(null);
 
+  const serverUrl = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '');
+
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -123,7 +125,7 @@ export default function Profile() {
               onClick={() => !uploadingAvatar && fileInputRef.current?.click()}
             >
               {profile?.avatar_url ? (
-                <img src={`http://localhost:5000${profile.avatar_url}`} alt={profile.full_name} />
+                <img src={`${serverUrl}${profile.avatar_url}`} alt={profile.full_name} />
               ) : (
                 <User size={40} />
               )}
