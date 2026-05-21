@@ -1,10 +1,15 @@
-import { format, parseISO, formatDistanceToNow } from 'date-fns';
+import { parseISO, formatDistanceToNow } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { id } from 'date-fns/locale';
+
+const TZ = 'Asia/Jakarta';
 
 export const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
-    return format(parseISO(dateStr), 'd MMMM yyyy', { locale: id });
+    // If it's just a YYYY-MM-DD string, append T00:00:00 so it doesn't get shifted by browser local time
+    const safeStr = dateStr.length === 10 ? `${dateStr}T00:00:00+07:00` : dateStr;
+    return formatInTimeZone(safeStr, TZ, 'd MMMM yyyy', { locale: id });
   } catch {
     return dateStr;
   }
@@ -13,7 +18,7 @@ export const formatDate = (dateStr) => {
 export const formatTime = (dateStr) => {
   if (!dateStr) return '-';
   try {
-    return format(parseISO(dateStr), 'HH:mm', { locale: id });
+    return formatInTimeZone(dateStr, TZ, 'HH:mm', { locale: id });
   } catch {
     return dateStr;
   }
@@ -22,7 +27,7 @@ export const formatTime = (dateStr) => {
 export const formatDateTime = (dateStr) => {
   if (!dateStr) return '-';
   try {
-    return format(parseISO(dateStr), 'd MMM yyyy, HH:mm', { locale: id });
+    return formatInTimeZone(dateStr, TZ, 'd MMM yyyy, HH:mm', { locale: id });
   } catch {
     return dateStr;
   }

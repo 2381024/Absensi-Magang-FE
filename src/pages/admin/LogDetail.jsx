@@ -10,6 +10,7 @@ import Modal from '../../components/ui/Modal';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { ArrowLeft, Edit2, Clock, Calendar, Timer, MapPin, FileText, Save, CalendarDays, AlertTriangle } from 'lucide-react';
 import { formatDate, formatTime, formatMinutesToHours, getStatusLabel, formatTimeStr } from '../../utils/formatters';
+import { formatInTimeZone } from 'date-fns-tz';
 import '../user/LogDetail.css';
 
 export default function AdminLogDetail() {
@@ -35,8 +36,8 @@ export default function AdminLogDetail() {
   const openEdit = () => {
     setEditForm({
       description: log.description || '',
-      start_time: log.start_time ? log.start_time.slice(0, 16) : '',
-      end_time: log.end_time ? log.end_time.slice(0, 16) : '',
+      start_time: log.start_time ? formatInTimeZone(log.start_time, 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm") : '',
+      end_time: log.end_time ? formatInTimeZone(log.end_time, 'Asia/Jakarta', "yyyy-MM-dd'T'HH:mm") : '',
     });
     setEditModal(true);
   };
@@ -46,8 +47,8 @@ export default function AdminLogDetail() {
     try {
       const body = {};
       if (editForm.description !== (log.description || '')) body.description = editForm.description;
-      if (editForm.start_time) body.start_time = new Date(editForm.start_time).toISOString();
-      if (editForm.end_time) body.end_time = new Date(editForm.end_time).toISOString();
+      if (editForm.start_time) body.start_time = `${editForm.start_time}:00+07:00`;
+      if (editForm.end_time) body.end_time = `${editForm.end_time}:00+07:00`;
       await api.put(`/logs/${id}`, body);
       toast.success('Log berhasil diperbarui');
       setEditModal(false);
