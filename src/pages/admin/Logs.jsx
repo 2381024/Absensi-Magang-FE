@@ -82,7 +82,8 @@ export default function AdminLogs() {
       key: 'is_early_leave', label: 'Pulang',
       render: (v) => {
         if (v === true) return <Badge variant="warning">Cepat</Badge>;
-        return null;
+        if (v === false) return <Badge variant="success">Tepat Waktu</Badge>;
+        return <span className="text-muted">-</span>;
       },
     },
     {

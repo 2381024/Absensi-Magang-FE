@@ -8,7 +8,7 @@ import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { ArrowLeft, Edit2, Clock, Calendar, Timer, MapPin, FileText, Save, CalendarDays, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Edit2, Clock, Calendar, Timer, MapPin, FileText, Save, CalendarDays, AlertTriangle, X } from 'lucide-react';
 import { formatDate, formatTime, formatMinutesToHours, getStatusLabel, formatTimeStr } from '../../utils/formatters';
 import { formatInTimeZone } from 'date-fns-tz';
 import '../user/LogDetail.css';
@@ -47,8 +47,14 @@ export default function AdminLogDetail() {
     try {
       const body = {};
       if (editForm.description !== (log.description || '')) body.description = editForm.description;
-      if (editForm.start_time) body.start_time = `${editForm.start_time}:00+07:00`;
-      if (editForm.end_time) body.end_time = `${editForm.end_time}:00+07:00`;
+      if (editForm.start_time) {
+        body.start_time = `${editForm.start_time}:00+07:00`;
+      }
+      if (editForm.end_time) {
+        body.end_time = `${editForm.end_time}:00+07:00`;
+      } else if (log.end_time) {
+        body.end_time = null;
+      }
       await api.put(`/logs/${id}`, body);
       toast.success('Log berhasil diperbarui');
       setEditModal(false);
@@ -57,6 +63,20 @@ export default function AdminLogDetail() {
       toast.error(err.response?.data?.error?.message || 'Gagal memperbarui log');
     }
     setSaving(false);
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    if (!confirm('Hapus catatan ini?')) return;
+    try {
+      await api.delete(`/logs/entries/${entryId}`);
+      setLog((prev) => ({
+        ...prev,
+        entries: prev.entries.filter(e => e.id !== entryId)
+      }));
+      toast.success('Catatan dihapus');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Gagal menghapus catatan');
+    }
   };
 
   if (loading) return <PageSpinner />;
@@ -129,9 +149,18 @@ export default function AdminLogDetail() {
           <div className="log-detail-entries">
             <h4><FileText size={16} /> Catatan Pekerjaan</h4>
             {log.entries.map((entry) => (
-              <div key={entry.id} className="entry-item">
-                <span className="entry-time">{formatTime(entry.timestamp)}</span>
-                <span className="entry-content">{entry.content}</span>
+              <div key={entry.id} className="entry-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <span className="entry-time" style={{ flexShrink: 0 }}>{formatTime(entry.timestamp)}</span>
+                <span className="entry-content" style={{ flexGrow: 1 }}>{entry.content}</span>
+                <button 
+                  onClick={() => handleDeleteEntry(entry.id)} 
+                  title="Hapus Catatan"
+                  style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', opacity: 0.7, padding: '2px' }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+                >
+                  <X size={14} />
+                </button>
               </div>
             ))}
           </div>

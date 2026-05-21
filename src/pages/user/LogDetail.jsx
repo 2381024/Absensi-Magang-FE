@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
+import { useToast } from '../../context/ToastContext';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { ArrowLeft, Clock, Calendar, Timer, MapPin, FileText, CalendarDays, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, Timer, MapPin, FileText, CalendarDays, AlertTriangle, X } from 'lucide-react';
 import { formatDate, formatTime, formatMinutesToHours, getStatusLabel, formatTimeStr } from '../../utils/formatters';
 import './LogDetail.css';
 
 export default function LogDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +29,20 @@ export default function LogDetail() {
     };
     fetch();
   }, [id]);
+
+  const handleDeleteEntry = async (entryId) => {
+    if (!confirm('Hapus catatan ini?')) return;
+    try {
+      await api.delete(`/logs/entries/${entryId}`);
+      setLog((prev) => ({
+        ...prev,
+        entries: prev.entries.filter(e => e.id !== entryId)
+      }));
+      toast.success('Catatan dihapus');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Gagal menghapus catatan');
+    }
+  };
 
   if (loading) return <PageSpinner />;
   if (!log) return (
@@ -120,9 +136,18 @@ export default function LogDetail() {
           <div className="log-detail-entries">
             <h4><FileText size={16} /> Catatan Pekerjaan</h4>
             {log.entries.map((entry) => (
-              <div key={entry.id} className="entry-item">
-                <span className="entry-time">{formatTime(entry.timestamp)}</span>
-                <span className="entry-content">{entry.content}</span>
+              <div key={entry.id} className="entry-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <span className="entry-time" style={{ flexShrink: 0 }}>{formatTime(entry.timestamp)}</span>
+                <span className="entry-content" style={{ flexGrow: 1 }}>{entry.content}</span>
+                <button 
+                  onClick={() => handleDeleteEntry(entry.id)} 
+                  title="Hapus Catatan"
+                  style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', opacity: 0.7, padding: '2px' }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+                >
+                  <X size={14} />
+                </button>
               </div>
             ))}
           </div>

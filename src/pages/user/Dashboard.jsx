@@ -22,6 +22,7 @@ import {
   FileText,
   AlertTriangle,
   CalendarDays,
+  X,
 } from 'lucide-react';
 import {
   formatTime,
@@ -222,6 +223,17 @@ export default function UserDashboard() {
     }
   };
 
+  const handleDeleteEntry = async (entryId) => {
+    if (!confirm('Hapus catatan ini?')) return;
+    try {
+      await api.delete(`/logs/entries/${entryId}`);
+      setEntries((prev) => prev.filter(e => e.id !== entryId));
+      toast.success('Catatan dihapus');
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Gagal menghapus catatan');
+    }
+  };
+
   if (loading) return <PageSpinner />;
 
   return (
@@ -308,9 +320,18 @@ export default function UserDashboard() {
                   </p>
                 ) : (
                   entries.map((entry) => (
-                    <div key={entry.id} className="entry-item">
-                      <span className="entry-time">{formatTime(entry.timestamp)}</span>
-                      <span className="entry-content">{entry.content}</span>
+                    <div key={entry.id} className="entry-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <span className="entry-time" style={{ flexShrink: 0 }}>{formatTime(entry.timestamp)}</span>
+                      <span className="entry-content" style={{ flexGrow: 1 }}>{entry.content}</span>
+                      <button 
+                        onClick={() => handleDeleteEntry(entry.id)} 
+                        title="Hapus Catatan"
+                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', opacity: 0.7, padding: '2px' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = 0.7}
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
                   ))
                 )}
