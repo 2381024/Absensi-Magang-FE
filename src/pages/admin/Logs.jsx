@@ -80,7 +80,8 @@ export default function AdminLogs() {
     },
     {
       key: 'is_early_leave', label: 'Pulang',
-      render: (v) => {
+      render: (v, row) => {
+        if (row.status === 'active') return <span className="text-muted">-</span>;
         if (v === true) return <Badge variant="warning">Cepat</Badge>;
         if (v === false) return <Badge variant="success">Tepat Waktu</Badge>;
         return <span className="text-muted">-</span>;
