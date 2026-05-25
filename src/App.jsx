@@ -26,6 +26,12 @@ function RootRedirect() {
   return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />;
 }
 
+function UserRoute({ children }) {
+  const { user } = useAuth();
+  if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -38,10 +44,10 @@ export default function App() {
             {/* Protected Layout */}
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               {/* User routes */}
-              <Route path="/dashboard" element={<UserDashboard />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/logs/:id" element={<LogDetail />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/dashboard" element={<ProtectedRoute><UserRoute><UserDashboard /></UserRoute></ProtectedRoute>} />
+              <Route path="/history" element={<ProtectedRoute><UserRoute><History /></UserRoute></ProtectedRoute>} />
+              <Route path="/logs/:id" element={<ProtectedRoute><UserRoute><LogDetail /></UserRoute></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
               {/* Admin routes */}
               <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />

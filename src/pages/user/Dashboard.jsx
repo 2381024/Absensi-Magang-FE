@@ -163,7 +163,11 @@ export default function UserDashboard() {
       await fetchToday();
     } catch (err) {
       const msg = err.response?.data?.error?.message || 'Gagal memulai shift';
-      toast.error(msg);
+      if (!reason && msg.toLowerCase().includes('alasan terlambat wajib diisi')) {
+        setLateModalOpen(true);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setActionLoading(false);
     }
@@ -205,7 +209,11 @@ export default function UserDashboard() {
       await Promise.all([fetchToday(), fetchSummary()]);
     } catch (err) {
       const msg = err.response?.data?.error?.message || 'Gagal mengakhiri shift';
-      toast.error(msg);
+      if (!reason && msg.toLowerCase().includes('alasan') && msg.toLowerCase().includes('wajib')) {
+        setEarlyModalOpen(true);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setActionLoading(false);
     }
