@@ -66,7 +66,7 @@ export default function AdminLogs() {
   };
 
   const columns = [
-    { key: 'user_id', label: 'User', render: (v) => getUserName(v) },
+    { key: 'user', label: 'User', render: (v) => v?.full_name || '-' },
     { key: 'date', label: 'Tanggal', render: (v) => formatDate(v) },
     { key: 'start_time', label: 'Mulai', render: (v) => formatTime(v) },
     { key: 'end_time', label: 'Selesai', render: (v) => formatTime(v) },
