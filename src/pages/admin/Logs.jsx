@@ -20,10 +20,11 @@ export default function AdminLogs() {
   const [userId, setUserId] = useState('');
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   const fetchLogs = async () => {
-    setLoading(true);
+    setLogsLoading(true);
     try {
       const params = { month, year };
       if (status) params.status = status;
@@ -31,18 +32,22 @@ export default function AdminLogs() {
       const { data } = await api.get('/logs/all', { params });
       setLogs(data.data);
     } catch { /* ignore */ }
-    setLoading(false);
+    setLogsLoading(false);
   };
 
   const fetchUsers = async () => {
+    setUsersLoading(true);
     try {
       const { data } = await api.get('/users');
       setUsers(data.data);
     } catch { /* ignore */ }
+    setUsersLoading(false);
   };
 
   useEffect(() => { fetchUsers(); }, []);
   useEffect(() => { fetchLogs(); }, [month, year, status, userId]);
+
+  const loading = logsLoading || usersLoading;
 
   const handleDelete = async (log) => {
     if (!confirm('Hapus log ini?')) return;
