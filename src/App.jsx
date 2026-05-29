@@ -1,23 +1,25 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ToastContainer from './components/ui/Toast';
 import AppLayout from './components/Layout/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import { PageSpinner } from './components/ui/Spinner';
 
-// Pages
-import Login from './pages/Login';
-import UserDashboard from './pages/user/Dashboard';
-import History from './pages/user/History';
-import LogDetail from './pages/user/LogDetail';
-import Profile from './pages/user/Profile';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminUsers from './pages/admin/Users';
-import AdminSchedules from './pages/admin/Schedules';
-import AdminGeofence from './pages/admin/Geofence';
-import AdminLogs from './pages/admin/Logs';
-import AdminLogDetail from './pages/admin/LogDetail';
-import AdminConfig from './pages/admin/Config';
+// Pages (Lazy Loaded)
+const Login = lazy(() => import('./pages/Login'));
+const UserDashboard = lazy(() => import('./pages/user/Dashboard'));
+const History = lazy(() => import('./pages/user/History'));
+const LogDetail = lazy(() => import('./pages/user/LogDetail'));
+const Profile = lazy(() => import('./pages/user/Profile'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/Users'));
+const AdminSchedules = lazy(() => import('./pages/admin/Schedules'));
+const AdminGeofence = lazy(() => import('./pages/admin/Geofence'));
+const AdminLogs = lazy(() => import('./pages/admin/Logs'));
+const AdminLogDetail = lazy(() => import('./pages/admin/LogDetail'));
+const AdminConfig = lazy(() => import('./pages/admin/Config'));
 
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -38,30 +40,32 @@ export default function App() {
       <AuthProvider>
         <ToastProvider>
           <ToastContainer />
-          <Routes>
-            <Route path="/login" element={<Login />} />
+          <Suspense fallback={<PageSpinner />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected Layout */}
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              {/* User routes */}
-              <Route path="/dashboard" element={<ProtectedRoute><UserRoute><UserDashboard /></UserRoute></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><UserRoute><History /></UserRoute></ProtectedRoute>} />
-              <Route path="/logs/:id" element={<ProtectedRoute><UserRoute><LogDetail /></UserRoute></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              {/* Protected Layout */}
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                {/* User routes */}
+                <Route path="/dashboard" element={<ProtectedRoute><UserRoute><UserDashboard /></UserRoute></ProtectedRoute>} />
+                <Route path="/history" element={<ProtectedRoute><UserRoute><History /></UserRoute></ProtectedRoute>} />
+                <Route path="/logs/:id" element={<ProtectedRoute><UserRoute><LogDetail /></UserRoute></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
-              {/* Admin routes */}
-              <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
-              <Route path="/admin/schedules" element={<ProtectedRoute adminOnly><AdminSchedules /></ProtectedRoute>} />
-              <Route path="/admin/geofence" element={<ProtectedRoute adminOnly><AdminGeofence /></ProtectedRoute>} />
-              <Route path="/admin/logs" element={<ProtectedRoute adminOnly><AdminLogs /></ProtectedRoute>} />
-              <Route path="/admin/logs/:id" element={<ProtectedRoute adminOnly><AdminLogDetail /></ProtectedRoute>} />
-              <Route path="/admin/config" element={<ProtectedRoute adminOnly><AdminConfig /></ProtectedRoute>} />
-            </Route>
+                {/* Admin routes */}
+                <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
+                <Route path="/admin/schedules" element={<ProtectedRoute adminOnly><AdminSchedules /></ProtectedRoute>} />
+                <Route path="/admin/geofence" element={<ProtectedRoute adminOnly><AdminGeofence /></ProtectedRoute>} />
+                <Route path="/admin/logs" element={<ProtectedRoute adminOnly><AdminLogs /></ProtectedRoute>} />
+                <Route path="/admin/logs/:id" element={<ProtectedRoute adminOnly><AdminLogDetail /></ProtectedRoute>} />
+                <Route path="/admin/config" element={<ProtectedRoute adminOnly><AdminConfig /></ProtectedRoute>} />
+              </Route>
 
-            <Route path="/" element={<RootRedirect />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="/" element={<RootRedirect />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

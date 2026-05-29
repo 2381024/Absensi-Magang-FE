@@ -20,16 +20,21 @@ export default function AdminGeofence() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', radius_meters: 100 });
   const [position, setPosition] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchLocations = async () => {
     try {
-      const { data } = await api.get('/geofence');
+      const { data } = await api.get(`/geofence?page=${page}&limit=5`);
       setLocations(data.data);
+      if (data.pagination) {
+        setTotalPages(data.pagination.total_pages);
+      }
     } catch { /* ignore */ }
     setLoading(false);
   };
 
-  useEffect(() => { fetchLocations(); }, []);
+  useEffect(() => { fetchLocations(); }, [page]);
 
   const openCreate = () => {
     setEditing(null);
@@ -149,6 +154,18 @@ export default function AdminGeofence() {
           ))
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+          <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+            Sebelumnya
+          </Button>
+          <span style={{ padding: '4px 8px', fontSize: 'var(--font-size-sm)' }}>Halaman {page} dari {totalPages}</span>
+          <Button variant="secondary" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+            Selanjutnya
+          </Button>
+        </div>
+      )}
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} size="lg"
         title={editing ? 'Edit Geofence' : 'Tambah Geofence'}

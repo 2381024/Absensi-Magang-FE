@@ -47,19 +47,22 @@ export default function AdminSchedules() {
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const fetchData = async () => {
     try {
-      const [schedRes, usersRes] = await Promise.all([
-        api.get('/schedules'),
-        api.get('/users'),
-      ]);
-      setSchedules(schedRes.data.data);
-      setUsers(usersRes.data.data.filter(u => u.role !== 'admin' && u.is_active));
+      const { data } = await api.get(`/schedules?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+      setSchedules(data.data);
+      setUsers(data.users);
+      if (data.pagination) {
+        setTotalPages(data.pagination.total_pages);
+      }
     } catch { /* ignore */ }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [page, search]);
 
   // Group schedules by user_id
   const scheduleMap = {};
@@ -68,10 +71,8 @@ export default function AdminSchedules() {
     scheduleMap[s.user_id][s.day_of_week] = s;
   });
 
-  const filtered = users.filter((u) =>
-    u.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  // We rely on the backend search now, so filtered is just users
+  const filtered = users;
 
   // Excel import
   const handleFileUpload = async (e) => {
@@ -270,6 +271,18 @@ export default function AdminSchedules() {
           </table>
         </div>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="pagination" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+          <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+            Sebelumnya
+          </Button>
+          <span style={{ padding: '4px 8px', fontSize: 'var(--font-size-sm)' }}>Halaman {page} dari {totalPages}</span>
+          <Button variant="secondary" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+            Selanjutnya
+          </Button>
+        </div>
+      )}
 
       {/* Import Modal */}
       <Modal isOpen={importModalOpen} onClose={() => { setImportModalOpen(false); setImportResults(null); }}
